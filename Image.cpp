@@ -41,13 +41,18 @@ void Image::FlipVertical()
   iluFlipImage();
 }
 
-Image::Image(const char* filename)
+Image::Image(const char* filename, bool hdrlum )
 {
 
     ilGenImages(1,&image);
     ilBindImage(image);
     ilLoadImage(filename);
-    ConvertToRGBA();
+    if (!hdrlum)
+    {
+      ConvertToRGBA();
+    }else{
+      ConvertToLUMHDR();
+    }
     w = ilGetInteger(IL_IMAGE_WIDTH);
     h = ilGetInteger(IL_IMAGE_HEIGHT);
     d = ilGetInteger(IL_IMAGE_DEPTH);
@@ -141,6 +146,12 @@ void Image::ConvertToLUM()
     ilConvertImage(IL_LUMINANCE,IL_UNSIGNED_BYTE);
     datapointer = ilGetData();
 
+}
+void Image::ConvertToLUMHDR()
+{
+    ilBindImage(image);
+    ilConvertImage(IL_LUMINANCE,IL_SHORT);
+    datapointer = ilGetData();
 }
 
 void Image::ConvertToRGBA()

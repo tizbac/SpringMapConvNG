@@ -30,7 +30,7 @@ class Image{
     unsigned char * datapointer;
     Image();
     
-    Image(const char * filename);
+    Image(const char* filename, bool hdrlum = false);
     
     void Save(const char * filename);
     
@@ -49,6 +49,8 @@ class Image{
     void GetPixelLUM(int x_, int y_,unsigned char * p);
     
     void ConvertToLUM();
+    
+    void ConvertToLUMHDR();
     
     void ConvertToRGBA();
     

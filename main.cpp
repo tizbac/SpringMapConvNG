@@ -23,17 +23,17 @@ int main(int argc, char** argv)
       std::string typemap;
       std::string heightmap;
       std::string vegmap;
+      bool smooth = false;
       float minh = 0.0f;
       float maxh = 1.0f;
       int ct = COMPRESS_REASONABLE;
       float th = 1.0;
-      for ( int i = 1; i < argc-1; i++ )
+      for ( int i = 1; i < argc; i++ )
       {
 	if ( strlen(argv[i]) > 1 )
 	{
 	  if ( argv[i][0] == '-' )
 	  {
-	    
 	    if ( strcmp(&argv[i][1],"t") == 0 )
 	    {
 	      valid1 = true;
@@ -135,7 +135,12 @@ int main(int argc, char** argv)
 		goto error;
 	      }
 	      
-	    }else if ( strncmp(&argv[i][1],"h",1) == 0 )//Help
+	    }else if ( strcmp(&argv[i][1],"smooth") == 0 )//Smooth
+	    {
+	      smooth = true;
+	      
+	    }
+	    else if ( strncmp(&argv[i][1],"h",1) == 0 )//Help
 	    {
 	      goto error;
 	    }
@@ -158,6 +163,7 @@ int main(int argc, char** argv)
 	return 1;
       success:
 	SMFMap * m = new SMFMap(outputname,texture);
+	m->SetBlur(smooth);
 	if ( heightmap.length() > 0 ) m->SetHeightMap(heightmap);
 	if ( metalmap.length() > 0 ) m->SetMetalMap(metalmap);
 	if ( typemap.length() > 0 ) m->SetTypeMap(typemap);

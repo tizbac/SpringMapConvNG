@@ -83,6 +83,7 @@ public:
     void SetHeightRange(float minh,float maxh);
     void SetCompressionTol(float th);
     void SetCompressionType(int c);
+    void SetBlur(bool b);
 private:
     void DoCompress(int * indices , std::vector<uint64_t>& order);
     TileStorage * m_tiles;
@@ -98,6 +99,7 @@ private:
     float m_minh;
     float m_maxh;
     float m_th;
+    bool m_smooth;
     int m_comptype;
      std::string texpath;
 };

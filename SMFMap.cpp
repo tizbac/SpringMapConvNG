@@ -45,6 +45,7 @@ SMFMap::SMFMap(std::string name,std::string texturepath)
     m_name = name;
     m_th = 0;
     m_comptype = COMPRESS_REASONABLE;
+    m_smooth = false;
     texpath = texturepath;
 }
 void SMFMap::SetVegetationMap(std::string path)
@@ -84,6 +85,8 @@ SMFMap::~SMFMap()
       delete minimap;
     if ( texture )
       delete texture;
+    if ( vegetationmap )
+      delete vegetationmap;
 }
 void SMFMap::SetMiniMap(std::string path)
 {
@@ -135,16 +138,28 @@ void SMFMap::SetHeightMap(std::string path)
         if ( heightmap )
             delete heightmap;
         heightmap = img;
-        heightmap->ConvertToLUM();
+        heightmap->ConvertToLUMHDR();
         if ( img->w != mapx+1 || img->h != mapy+1 )
         {
             std::cerr << "Warning: Height map has wrong size , rescaling!" << std::endl;
             heightmap->Rescale(mapx+1,mapy+1);
 
         }
+        if ( m_smooth )
+	{
+	  std::cout << "Blurring heightmap..." << std::endl;
+	  ilBindImage(heightmap->image);
+	  iluBlurGaussian(5);
+	  
+	}
     }
 
 }
+void SMFMap::SetBlur(bool b)
+{
+  m_smooth = b;
+}
+
 void SMFMap::SetMetalMap(std::string path)
 {
     Image * img = new Image(path.c_str());
@@ -154,6 +169,7 @@ void SMFMap::SetMetalMap(std::string path)
             delete metalmap;
         metalmap = img;
         metalmap->ConvertToLUM();
+	
         if ( img->w != mapx/2 || img->h != mapy/2 )
         {
             std::cerr << "Warning: Metal map has wrong size , rescaling!" << std::endl;
