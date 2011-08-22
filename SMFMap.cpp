@@ -159,6 +159,10 @@ void SMFMap::SetBlur(bool b)
 {
   m_smooth = b;
 }
+void SMFMap::SetCompareTileCount(uint32_t count)
+{
+  m_tiles->SetDictSize(count);
+}
 
 void SMFMap::SetMetalMap(std::string path)
 {
@@ -338,10 +342,14 @@ void SMFMap::DoCompress(int* indices, std::vector< uint64_t >& order)
   
   uint8_t tiledata[32*32*4];
   std::map<uint64_t,uint32_t> existingtiles;
+  int c;
   for ( int y = 0; y < mapy/4; y++ )
   {
     for ( int x = 0; x < mapx/4; x++ )
     {
+      if ( c % 50 == 0 )
+	printf("\rCompressing %8d/%8d      - %6d tiles                    ",c,mapy/4*mapx/4,m_tiles->GetTileCount());
+      c++;
       texture->GetRect(x*32,y*32,32,32,IL_RGBA,IL_UNSIGNED_BYTE,tiledata);
       for ( int yy = 0; yy < 16; yy++ )//Flip vertically
       {
@@ -368,6 +376,7 @@ void SMFMap::DoCompress(int* indices, std::vector< uint64_t >& order)
     
     
   }
+  printf("\n");
   std::cout << "Compress done , ratio: " << float(existingtiles.size())/float(mapy/4 * mapx/4)*100.0 << std::endl;
   
 }

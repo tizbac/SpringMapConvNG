@@ -30,17 +30,22 @@ inline float tilediff(uint8_t * t1,uint8_t * t2)
   float diff = 0.0;
   for ( int i = 0; i < 32*32*4; i++ )
   {
-    diff += fabs(float(t1[i])-float(t2[i]));
+    float d1 = fabs(float(t1[i])-float(t2[i]));
+    if ( d1 < 30 )
+      diff += d1;
+    else
+      diff += 255.0f;//If it has a point that is VERY different , it must not be reused 
     
     
   }
-  diff /= 32.0*32.0*4.0f*255.0f;
+  diff /= 32.0*32.0*4.0f*10.0f;
   return diff;
 }
 
 TileStorage::TileStorage()
 {
   Reset();
+  m_dictcount = 64;
 }
 
 TileStorage::~TileStorage()
@@ -75,7 +80,7 @@ uint64_t TileStorage::AddTile(uint8_t* data)
   memcpy(data_copy,data,32*32*4);
   m_tiles.insert(std::pair<uint64_t,uint8_t*>(checksum,data_copy));
   m_lasttiles.push_back(checksum);
-  if ( m_lasttiles.size() > 32 )
+  if ( m_lasttiles.size() > m_dictcount )
     m_lasttiles.pop_front();
   return checksum;
 }
@@ -94,6 +99,11 @@ void TileStorage::CompressAll()
   }
 
 }
+void TileStorage::SetDictSize(uint32_t s)
+{
+  m_dictcount = s;
+}
+
 void TileStorage::CompressTile(uint64_t uid)
 {
   uint8_t * m0;
@@ -216,10 +226,28 @@ uint64_t TileStorage::AddTileOrGetSimiliar(uint8_t* data, float th, int compress
   {
     //do nothing...
     
+  }else if ( compresslevel == COMPRESS_REASONABLE_BESTQUALITY )
+  {
+    float mindiff = 9999999.0f;
+    uint64_t besttile;
+    for ( std::list<uint64_t>::iterator it = m_lasttiles.begin(); it != m_lasttiles.end(); it++ )
+    {
+      float diff = tilediff(data,m_tiles[(*it)]);
+      if ( diff < mindiff )
+      {
+	besttile = (*it);
+	mindiff = diff;
+	
+      }
+    }
+    if ( mindiff <= th )
+      return besttile;
+    
+    
   }
   return AddTile(data);
 }
 uint32_t TileStorage::GetTileCount()
 {
-  return m_tiles_compressed.size();
+  return std::max(m_tiles_compressed.size(),m_tiles.size());
 }

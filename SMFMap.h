@@ -83,6 +83,7 @@ public:
     void SetHeightRange(float minh,float maxh);
     void SetCompressionTol(float th);
     void SetCompressionType(int c);
+    void SetCompareTileCount(uint32_t count);
     void SetBlur(bool b);
 private:
     void DoCompress(int * indices , std::vector<uint64_t>& order);

@@ -12,6 +12,9 @@ int main(int argc, char** argv)
     if ( argc == 1 )
     {
       std::cout << "Usage: " << argv[0] << " -t [maintexture] -m [metalmap] -z [typemap] -h [heightmap] -maxh [white height value] -minh [black height value] -o [outputsuffix] -minimap [minimap_image]" << std::endl;
+      std::cout << " -ct [compression_type] -ccount [compare_tilecount] -th [compression_level]" << std::endl;
+      std::cout << "Compression types:\n\t1: No compression \n\t2: Fast compression , compare tile with last -ccount tiles , take first which difference is below -th\n\t3: Insane Compression: compare each tile with whole map , it is very SLOW, not recomended\n\t4: High quality Fast compression: Slightly slower than 2 , it searchs for less different tile in last -ccount tiles" << std::endl;
+      
       return 1;
     }else{
       bool valid2 = false;
@@ -24,10 +27,11 @@ int main(int argc, char** argv)
       std::string heightmap;
       std::string vegmap;
       bool smooth = false;
+      int tcount = 64;
       float minh = 0.0f;
       float maxh = 1.0f;
       int ct = COMPRESS_REASONABLE;
-      float th = 1.0;
+      float th = 0.8;
       for ( int i = 1; i < argc; i++ )
       {
 	if ( strlen(argv[i]) > 1 )
@@ -107,7 +111,7 @@ int main(int argc, char** argv)
 		goto error;
 	      }
 	      
-	    }else if ( strcmp(&argv[i][1],"th") == 0 )//Compression 
+	    }else if ( strcmp(&argv[i][1],"th") == 0 )//Compression level
 	    {
 	      if ( i+1 < argc )
 	      {
@@ -117,7 +121,7 @@ int main(int argc, char** argv)
 	      }
 	      
 	    }
-	    else if ( strcmp(&argv[i][1],"ct") == 0 )//Compression 
+	    else if ( strcmp(&argv[i][1],"ct") == 0 )//Compression mode 
 	    {
 	      if ( i+1 < argc )
 	      {
@@ -126,7 +130,17 @@ int main(int argc, char** argv)
 		goto error;
 	      }
 	      
-	    }else if ( strcmp(&argv[i][1],"v") == 0 )//Vegetation map
+	    }else if ( strcmp(&argv[i][1],"ccount") == 0 )//Compression , count of tiles to comapre in mode 2 and 4
+	    {
+	      if ( i+1 < argc )
+	      {
+		tcount = atoi(argv[++i]);
+	      }else{
+		goto error;
+	      }
+	      
+	    }
+	    else if ( strcmp(&argv[i][1],"v") == 0 )//Vegetation map
 	    {
 	      if ( i+1 < argc )
 	      {
@@ -169,6 +183,7 @@ int main(int argc, char** argv)
 	if ( typemap.length() > 0 ) m->SetTypeMap(typemap);
 	if ( minimap.length() > 0 ) m->SetMiniMap(minimap);
 	if ( vegmap.length() > 0 ) m->SetVegetationMap(vegmap);
+	m->SetCompareTileCount(tcount);
 	m->SetHeightRange(minh,maxh);
 	m->SetCompressionTol(th);
 	m->SetCompressionType(ct);
