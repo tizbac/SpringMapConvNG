@@ -22,6 +22,7 @@ int main(int argc, char** argv)
       std::string metalmap;
       std::string typemap;
       std::string heightmap;
+      std::string vegmap;
       float minh = 0.0f;
       float maxh = 1.0f;
       int ct = COMPRESS_REASONABLE;
@@ -125,6 +126,15 @@ int main(int argc, char** argv)
 		goto error;
 	      }
 	      
+	    }else if ( strcmp(&argv[i][1],"v") == 0 )//Vegetation map
+	    {
+	      if ( i+1 < argc )
+	      {
+		vegmap = argv[++i];
+	      }else{
+		goto error;
+	      }
+	      
 	    }else if ( strncmp(&argv[i][1],"h",1) == 0 )//Help
 	    {
 	      goto error;
@@ -152,6 +162,7 @@ int main(int argc, char** argv)
 	if ( metalmap.length() > 0 ) m->SetMetalMap(metalmap);
 	if ( typemap.length() > 0 ) m->SetTypeMap(typemap);
 	if ( minimap.length() > 0 ) m->SetMiniMap(minimap);
+	if ( vegmap.length() > 0 ) m->SetVegetationMap(vegmap);
 	m->SetHeightRange(minh,maxh);
 	m->SetCompressionTol(th);
 	m->SetCompressionType(ct);

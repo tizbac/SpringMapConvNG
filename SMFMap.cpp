@@ -28,6 +28,7 @@ SMFMap::SMFMap(std::string name,std::string texturepath)
     heightmap = NULL;
     typemap = NULL;
     minimap = NULL;
+    vegetationmap = NULL;
     texture = new Image(texturepath.c_str());
     
     if ( texture->w < 1 )
@@ -46,6 +47,24 @@ SMFMap::SMFMap(std::string name,std::string texturepath)
     m_comptype = COMPRESS_REASONABLE;
     texpath = texturepath;
 }
+void SMFMap::SetVegetationMap(std::string path)
+{
+    Image * img = new Image(path.c_str());
+    if ( img->w > 0 )
+    {
+        if ( vegetationmap )
+            delete vegetationmap;
+        vegetationmap = img;
+        vegetationmap->ConvertToLUM();
+        if ( img->w != mapx/4 || img->h != mapy/4 )
+        {
+            std::cerr << "Warning: Vegetation map has wrong size , rescaling!" << std::endl;
+            vegetationmap->Rescale(mapx/4,mapy/4);
+
+        }
+    } 
+}
+
 void SMFMap::SetHeightRange(float minh, float maxh)
 {
   m_minh = minh;
@@ -200,12 +219,12 @@ void SMFMap::Compile()
         im2->AllocateRGBA(1024,1024,(char*)minimap->datapointer);
         for ( int i = 0; i < 9; i++ )
         {
-	    std::cout << ">Mipmap " << i << std::endl;
+	    //std::cout << ">Mipmap " << i << std::endl;
 	    im2->Rescale(s,s);
-	    std::cout << "<Mipmap " << i << std::endl;
+	    //std::cout << "<Mipmap " << i << std::endl;
 	    ILuint ss;
             ILubyte * dxtdata = ilCompressDXT(im2->datapointer,s,s,1,IL_DXT1,&ss);
-	    std::cout << ss << " " << s;
+	    //std::cout << ss << " " << s;
 	    memcpy(&minimap_data[p],dxtdata,ss);
 	    free(dxtdata);
             p += ss;
@@ -231,11 +250,18 @@ void SMFMap::Compile()
     mfhdr.numFeatures = 0;
     mfhdr.numFeatureType = 0; // TODO
     hdr.tilesPtr = hdr.featurePtr + sizeof(mfhdr);
-    hdr.numExtraHeaders = 0; // TODO : Grass
+    hdr.numExtraHeaders = 1; // TODO : Grass
+    ExtraHeader grassHeader;
+    grassHeader.size = 4;
+    grassHeader.type = 1;
     MapTileHeader mthdr;
     mthdr.numTileFiles = 1;
-    
-    
+    unsigned char * grass_data = new unsigned char[mapx/4 * mapy/4];bzero(grass_data,mapx/4 * mapy/4);
+    if ( vegetationmap )
+    {
+      vegetationmap->GetRect(0,0,vegetationmap->w,vegetationmap->h,IL_LUMINANCE,IL_UNSIGNED_BYTE,grass_data);
+      
+    }
     int * tiles = new int[mapx/4 * mapy/4];
     std::vector<uint64_t> order;
     DoCompress(tiles,order);
@@ -256,7 +282,11 @@ void SMFMap::Compile()
     fclose(tilefile);
     FILE * smffile = fopen((m_name+std::string(".smf")).c_str(),"wb");
     fwrite(&hdr,sizeof(hdr),1,smffile);
-    std::cout << ftell(smffile) << std::endl;;
+    fwrite(&grassHeader,sizeof(grassHeader),1,smffile);
+    int _ofs = ftell(smffile)+4;
+    fwrite(&_ofs,4,1,smffile);
+    fwrite(grass_data,mapx/4 * mapy/4,1,smffile);
+    
     hdr.minimapPtr  = ftell(smffile);
     fwrite(minimap_data,699064,1,smffile);
     hdr.heightmapPtr = ftell(smffile);
@@ -283,6 +313,7 @@ void SMFMap::Compile()
     delete typedata;
     delete tiles;
     delete minimap_data;
+    delete grass_data;
 }
 
 void SMFMap::DoCompress(int* indices, std::vector< uint64_t >& order)

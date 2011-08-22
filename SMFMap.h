@@ -55,7 +55,10 @@ typedef struct
 	int numTileFiles; ///< Number of tile files to read in (usually 1)
 	int numTiles;     ///< Total number of tiles
 } MapTileHeader;
-
+typedef struct{
+	int size; ///< Size of extra header
+	int type; ///< Type of extra header
+} ExtraHeader;
 class InvalidMapSizeException
 {
   
@@ -74,6 +77,7 @@ public:
     void SetTypeMap(std::string path);
     //void SetFeatureMap(std::string path);
     void SetHeightMap(std::string path);
+    void SetVegetationMap(std::string path);
     void SetMiniMap(std::string path);
     void Compile();
     void SetHeightRange(float minh,float maxh);
@@ -88,6 +92,7 @@ private:
     Image * typemap;
     Image * texture;
     Image * minimap;
+    Image * vegetationmap;
     int mapx,mapy;
     std::string m_name;
     float m_minh;
