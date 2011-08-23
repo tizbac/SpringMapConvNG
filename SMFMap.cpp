@@ -21,6 +21,8 @@
 #include <cstring>
 #include <iostream>
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
 SMFMap::SMFMap(std::string name,std::string texturepath)
 {
     m_tiles = new TileStorage();
@@ -64,6 +66,20 @@ void SMFMap::SetVegetationMap(std::string path)
 
         }
     } 
+}
+void SMFMap::AddFeature(std::string name, float x, float y, float z, float orientation)
+{
+  if ( features.find(name) == features.end() )//Allocate new vector
+  {
+    features[name] = new std::list<MapFeatureStruct*>();
+  }
+  MapFeatureStruct * feat = (MapFeatureStruct*)malloc(sizeof(MapFeatureStruct));
+  feat->xpos = x;
+  feat->ypos = y;
+  feat->zpos = z;
+  feat->rotation = 32767.0f-((orientation/360.0)*65535.0f);
+  feat->relativeSize = 1;
+  features[name]->push_back(feat);
 }
 
 void SMFMap::SetHeightRange(float minh, float maxh)
@@ -132,7 +148,7 @@ void SMFMap::SetMiniMap(std::string path)
 }*/
 void SMFMap::SetHeightMap(std::string path)
 {
-    Image * img = new Image(path.c_str());
+    Image * img = new Image(path.c_str(),true);
     if ( img->w > 0 )
     {
         if ( heightmap )
@@ -145,11 +161,30 @@ void SMFMap::SetHeightMap(std::string path)
             heightmap->Rescale(mapx+1,mapy+1);
 
         }
+        //Clamp heightmap before blurring
+        float _min = 65535.0f;
+	float _max = -65335.0f;
+	short * pixels = (short*)heightmap->datapointer;
+	for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
+	{
+	  if ( _min > pixels[i] )
+	    _min = pixels[i];
+	  if ( _max < pixels[i] )
+	    _max = pixels[i];
+	  
+	}
+	std::cout << "Range : " << _min << " -> " << _max << std::endl;
+	float range = _max-_min;
+	for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
+	{
+	  pixels[i] = short(((pixels[i]-_min)/range)*32767.0f);
+	  
+	}
         if ( m_smooth )
 	{
 	  std::cout << "Blurring heightmap..." << std::endl;
 	  ilBindImage(heightmap->image);
-	  iluBlurGaussian(5);
+	  iluBlurGaussian(30);
 	  
 	}
     }
@@ -267,10 +302,9 @@ void SMFMap::Compile()
     hdr.metalmapPtr = hdr.minimapPtr + 699048;
     hdr.featurePtr = hdr.metalmapPtr + (mapy/2 * mapx/2);*/
     MapFeatureHeader mfhdr;
-    mfhdr.numFeatures = 0;
-    mfhdr.numFeatureType = 0; // TODO
+    
     hdr.tilesPtr = hdr.featurePtr + sizeof(mfhdr);
-    hdr.numExtraHeaders = 1; // TODO : Grass
+    hdr.numExtraHeaders = 1;
     ExtraHeader grassHeader;
     grassHeader.size = 4;
     grassHeader.type = 1;
@@ -317,7 +351,43 @@ void SMFMap::Compile()
     hdr.metalmapPtr  = ftell(smffile);
     fwrite(metalmap_data,mapy/2 * mapx/2,1,smffile);
     hdr.featurePtr  = ftell(smffile);
+    
+
+    mfhdr.numFeatures = 0;
+    for ( std::map<std::string,std::list<MapFeatureStruct*> * >::iterator it = features.begin(); it != features.end(); it++ )//Enumerate features
+      mfhdr.numFeatures += (*it).second->size();
+    mfhdr.numFeatureType = features.size();
     fwrite(&mfhdr,sizeof(mfhdr),1,smffile);
+    {
+      std::map<std::string,unsigned int> featureTypes;
+      unsigned int z = 0;
+      for ( std::map<std::string,std::list<MapFeatureStruct*> * >::iterator it = features.begin(); it != features.end(); it++ )//Write feature types
+      {
+	fwrite((*it).first.c_str(),(*it).first.size()+1,1,smffile);
+	featureTypes[(*it).first] = z++;
+      }
+      for ( std::map<std::string,std::list<MapFeatureStruct*> * >::iterator it = features.begin(); it != features.end(); it++ )//Write feature types
+      {
+	for ( std::list<MapFeatureStruct*>::iterator it2 = (*it).second->begin(); it2 != (*it).second->end(); it2++ )
+	{
+	  (*it2)->featureType = featureTypes[(*it).first];
+	  if ( (*it2)->ypos < 490000.0f ) // Align on terrain
+	  {
+	    unsigned int hmapx = ((*it2)->xpos/float((mapx/128)*1024))*heightmap->w;
+	    unsigned int hmapy = ((*it2)->zpos/float((mapy/128)*1024))*heightmap->h;
+	    (*it2)->ypos = hdr.minHeight+(float(hmap[hmapy*(mapx+1)+hmapx])/32767.0)*(hdr.maxHeight-hdr.minHeight);
+	    std::cout << "Feature " << (*it).first << " Instance " << (*it2) << " Terrain height: " << (*it2)->ypos << std::endl;
+	  }
+	  
+	  fwrite((*it2),sizeof(MapFeatureStruct),1,smffile);
+	}
+	
+      }
+      
+      
+      
+    }
+    
     hdr.tilesPtr = ftell(smffile);
     uint32_t tc = m_tiles->GetTileCount();
     mthdr.numTiles = tc;

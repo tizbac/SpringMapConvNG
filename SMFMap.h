@@ -59,6 +59,16 @@ typedef struct{
 	int size; ///< Size of extra header
 	int type; ///< Type of extra header
 } ExtraHeader;
+typedef struct
+{
+	int featureType;    ///< Index to one of the strings above
+	float xpos;         ///< X coordinate of the feature
+	float ypos;         ///< Y coordinate of the feature (height)
+	float zpos;         ///< Z coordinate of the feature
+
+	float rotation;     ///< Orientation of this feature (-32768..32767 for full circle)
+	float relativeSize; ///< Not used at the moment keep 1
+} MapFeatureStruct;
 class InvalidMapSizeException
 {
   
@@ -85,6 +95,8 @@ public:
     void SetCompressionType(int c);
     void SetCompareTileCount(uint32_t count);
     void SetBlur(bool b);
+    void AddFeature(std::string name,float x, float y , float z,float orientation);
+    
 private:
     void DoCompress(int * indices , std::vector<uint64_t>& order);
     TileStorage * m_tiles;
@@ -102,7 +114,8 @@ private:
     float m_th;
     bool m_smooth;
     int m_comptype;
-     std::string texpath;
+    std::string texpath;
+    std::map<std::string,std::list<MapFeatureStruct*> * > features;
 };
 
 #endif // SMFMAP_H

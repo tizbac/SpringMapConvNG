@@ -6,15 +6,21 @@
 #include "SMFMap.h"
 
 #include <stdlib.h>
+void help(char ** argv)
+{
+  std::cout << "Usage: " << argv[0] << " -t [maintexture] -m [metalmap] -z [typemap] -h [heightmap] -maxh [white height value] -minh [black height value] -o [outputsuffix] -minimap [minimap_image]" << std::endl;
+  std::cout << " -ct [compression_type] -ccount [compare_tilecount] -th [compression_level] -features [featurefile]" << std::endl;
+  std::cout << "Compression types:\n\t1: No compression \n\t2: Fast compression , compare tile with last -ccount tiles , take first which difference is below -th\n\t3: Insane Compression: compare each tile with whole map , it is very SLOW, not recomended\n\t4: High quality Fast compression: Slightly slower than 2 , it searchs for less different tile in last -ccount tiles" << std::endl;
+  std::cout << "Feature file: Each line is a feature instance and has the fields in the following order [tdfname] [xpos] [ypos] [zpos] [rotation yaxis] , please do not leave whitespaces at the end or it\n will give errors." << std::endl;
+  std::cout << "If you specify less than -490000 as ypos , it will calculate ypos depending on terrain height" << std::endl;
+}
 int main(int argc, char** argv)
 {
     ilInit();
     if ( argc == 1 )
     {
-      std::cout << "Usage: " << argv[0] << " -t [maintexture] -m [metalmap] -z [typemap] -h [heightmap] -maxh [white height value] -minh [black height value] -o [outputsuffix] -minimap [minimap_image]" << std::endl;
-      std::cout << " -ct [compression_type] -ccount [compare_tilecount] -th [compression_level]" << std::endl;
-      std::cout << "Compression types:\n\t1: No compression \n\t2: Fast compression , compare tile with last -ccount tiles , take first which difference is below -th\n\t3: Insane Compression: compare each tile with whole map , it is very SLOW, not recomended\n\t4: High quality Fast compression: Slightly slower than 2 , it searchs for less different tile in last -ccount tiles" << std::endl;
       
+      help(argv);
       return 1;
     }else{
       bool valid2 = false;
@@ -26,6 +32,7 @@ int main(int argc, char** argv)
       std::string typemap;
       std::string heightmap;
       std::string vegmap;
+      std::string featurefile;
       bool smooth = false;
       int tcount = 64;
       float minh = 0.0f;
@@ -149,7 +156,18 @@ int main(int argc, char** argv)
 		goto error;
 	      }
 	      
-	    }else if ( strcmp(&argv[i][1],"smooth") == 0 )//Smooth
+	    }else if ( strcmp(&argv[i][1],"features") == 0 )//features file
+	    {
+	      
+	      if ( i+1 < argc )
+	      {
+		featurefile = argv[++i];
+	      }else{
+		goto error;
+	      }
+	      
+	    }
+	      else if ( strcmp(&argv[i][1],"smooth") == 0 )//Smooth
 	    {
 	      smooth = true;
 	      
@@ -173,7 +191,7 @@ int main(int argc, char** argv)
       if ( valid1 && valid2 )
 	goto success;
       error:
-	std::cout << "Usage: " << argv[0] << " -t [maintexture] -m [metalmap] -z [typemap] -h [heightmap] -maxh [white height value] -minh [black height value] -o [outputsuffix] -minimap [minimap_image]" << std::endl;
+	help(argv);
 	return 1;
       success:
 	SMFMap * m = new SMFMap(outputname,texture);
@@ -187,6 +205,32 @@ int main(int argc, char** argv)
 	m->SetHeightRange(minh,maxh);
 	m->SetCompressionTol(th);
 	m->SetCompressionType(ct);
+	if ( featurefile.length() > 0 )
+	{
+	  FILE * ff = fopen(featurefile.c_str(),"r");
+	  if (!ff)
+	  {
+	    std::cerr << "Cannot open feature file for reading!" <<std::endl;
+	    return 1;
+	  }
+	  char line[512];
+	  while ( fgets(line,511,ff ) )
+	  {
+	    float x,y,z,o;
+	    char name[512];
+	    if ( strlen(line) < 1 )
+	      continue;
+	    if ( sscanf(line,"%s %f %f %f %f",name,&x,&y,&z,&o) != 5 )
+	    {
+	      std::cerr << "Parse error @ '" << line << "'" << std::endl;
+	      return 1;
+	    }
+	    m->AddFeature(name,x,y,z,o);
+	  }
+	  fclose(ff);
+	  
+	}
 	m->Compile();
     }
 }
+
