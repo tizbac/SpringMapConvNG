@@ -20,9 +20,9 @@ target_link_libraries(SpringMapConvNG IL ILU mapconv_static )
 target_link_libraries(mapconv IL ILU )
 target_link_libraries(decompiler IL ILU mapconv_static )
 else ( NOT MINGW )
-target_link_libraries(SpringMapConvNG DevIL ILU mapconv_static )
+target_link_libraries(SpringMapConvNG DevIL ILU mapconv )
 target_link_libraries(mapconv DevIL ILU )
-target_link_libraries(decompiler DevIL ILU mapconv_static )
+target_link_libraries(decompiler DevIL ILU mapconv )
 endif ( NOT MINGW )
 
 

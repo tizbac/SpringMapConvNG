@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #ifdef WIN32
 #include <windows.h>
+#include <direct.h>
+#include <io.h>
 #endif
 void help(char ** argv)
 {
@@ -72,7 +74,11 @@ int main(int argc, char** argv)
 	help(argv);
 	return 1;
       success:
+#ifndef WIN32
 	if ( chdir(mapdirectory.c_str()) )
+#else
+	if ( _chdir(mapdirectory.c_str()) )
+#endif
 	{
 	  std::cerr << "Cannot change working directory to " << mapdirectory << std::endl;
 	  return 1;
