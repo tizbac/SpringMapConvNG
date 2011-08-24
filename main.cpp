@@ -10,9 +10,11 @@ void help(char ** argv)
 {
   std::cout << "Usage: " << argv[0] << " -t [maintexture] -m [metalmap] -z [typemap] -h [heightmap] -maxh [white height value] -minh [black height value] -o [outputsuffix] -minimap [minimap_image]" << std::endl;
   std::cout << " -ct [compression_type] -ccount [compare_tilecount] -th [compression_level] -features [featurefile]" << std::endl;
+  std::cout << " -noclamp disables heightmap clamping to max - min values , you should avoid using that , cause you lose precision, if you want less high landscape use maxh and minh" << std::endl;
   std::cout << "Compression types:\n\t1: No compression \n\t2: Fast compression , compare tile with last -ccount tiles , take first which difference is below -th\n\t3: Insane Compression: compare each tile with whole map , it is very SLOW, not recomended\n\t4: High quality Fast compression: Slightly slower than 2 , it searchs for less different tile in last -ccount tiles" << std::endl;
   std::cout << "Feature file: Each line is a feature instance and has the fields in the following order [tdfname] [xpos] [ypos] [zpos] [rotation yaxis] , please do not leave whitespaces at the end or it\n will give errors." << std::endl;
   std::cout << "If you specify less than -490000 as ypos , it will calculate ypos depending on terrain height" << std::endl;
+  
 }
 int main(int argc, char** argv)
 {
@@ -36,6 +38,7 @@ int main(int argc, char** argv)
       bool smooth = false;
       int tcount = 64;
       float minh = 0.0f;
+      bool clamping = true;
       float maxh = 1.0f;
       int ct = COMPRESS_REASONABLE;
       float th = 0.8;
@@ -156,6 +159,10 @@ int main(int argc, char** argv)
 		goto error;
 	      }
 	      
+	    }else if ( strcmp(&argv[i][1],"noclamp") == 0 )//No heightmap clamp
+	    {
+	      clamping = false;
+	      
 	    }else if ( strcmp(&argv[i][1],"features") == 0 )//features file
 	    {
 	      
@@ -205,6 +212,7 @@ int main(int argc, char** argv)
 	m->SetHeightRange(minh,maxh);
 	m->SetCompressionTol(th);
 	m->SetCompressionType(ct);
+	m->SetClamping(clamping);
 	if ( featurefile.length() > 0 )
 	{
 	  FILE * ff = fopen(featurefile.c_str(),"r");

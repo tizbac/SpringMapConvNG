@@ -1,10 +1,28 @@
 project(SpringMapConvNG)
 cmake_minimum_required(VERSION 2.6)
 #find_package(Qt4 REQUIRED)
+if (NOT MINGW )
+        include_directories(${CMAKE_CURRENT_BINARY_DIR})
+else ( NOT MINGW )
+        include_directories(${CMAKE_CURRENT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/winlibs/Devil_${ARCH}/include )
+        link_directories( ${PROJECT_SOURCE_DIR}/winlibs/Devil_${ARCH}/lib ${PROJECT_SOURCE_DIR}/winlibs/Devil_${ARCH} )
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+endif ( NOT MINGW )
 
-set(SpringMapConvNG_SRCS CRC.cpp Image.cpp SMFMap.cpp main.cpp TileStorage.cpp)
 #qt4_automoc(${SpringMapConvNG_SRCS})
-add_executable(SpringMapConvNG ${SpringMapConvNG_SRCS})
-target_link_libraries(SpringMapConvNG IL ILU )
+
+add_library(mapconv SHARED CRC.cpp Image.cpp SMFMap.cpp TileStorage.cpp )
+add_library(mapconv_static STATIC CRC.cpp Image.cpp SMFMap.cpp TileStorage.cpp )
+add_executable(SpringMapConvNG main.cpp)
+add_executable(decompiler decompiler.cpp)
+if (NOT MINGW )
+target_link_libraries(SpringMapConvNG IL ILU mapconv_static )
+target_link_libraries(mapconv IL ILU )
+target_link_libraries(decompiler IL ILU mapconv_static )
+else ( NOT MINGW )
+target_link_libraries(SpringMapConvNG DevIL ILU mapconv_static )
+target_link_libraries(mapconv DevIL ILU )
+target_link_libraries(decompiler DevIL ILU mapconv_static )
+endif ( NOT MINGW )
+
+

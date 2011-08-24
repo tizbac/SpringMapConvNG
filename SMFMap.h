@@ -69,6 +69,15 @@ typedef struct
 	float rotation;     ///< Orientation of this feature (-32768..32767 for full circle)
 	float relativeSize; ///< Not used at the moment keep 1
 } MapFeatureStruct;
+typedef struct
+{
+	char magic[16];      ///< "spring tilefile\0"
+	int version;         ///< Must be 1 for now
+
+	int numTiles;        ///< Total number of tiles in this file
+	int tileSize;        ///< Must be 32 for now
+	int compressionType; ///< Must be 1 (= dxt1) for now
+} TileFileHeader;
 class InvalidMapSizeException
 {
   
@@ -77,11 +86,29 @@ class CannotLoadTextureException
 {
   
 };
+class CannotLoadSmfFileException
+{
+  
+  
+};
+class InvalidSmfFileException
+{
+  
+};
+class CannotOpenSmtFileException
+{
+  
+};
+class InvalidSmtFileException
+{
+  
+};
 class SMFMap
 {
 
 public:
     SMFMap(std::string name,std::string texturepath);
+    SMFMap(std::string smfname); //Decompile
     virtual ~SMFMap();
     void SetMetalMap(std::string path);
     void SetTypeMap(std::string path);
@@ -94,7 +121,9 @@ public:
     void SetCompressionTol(float th);
     void SetCompressionType(int c);
     void SetCompareTileCount(uint32_t count);
+    void SetClamping(bool b);
     void SetBlur(bool b);
+    void SaveSourceFiles();
     void AddFeature(std::string name,float x, float y , float z,float orientation);
     
 private:
@@ -112,6 +141,7 @@ private:
     float m_minh;
     float m_maxh;
     float m_th;
+    bool m_doclamp;
     bool m_smooth;
     int m_comptype;
     std::string texpath;

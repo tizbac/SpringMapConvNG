@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#ifndef bzero
+#define bzero(ptr,len) memset(ptr,0,len)
+
+#endif
 SMFMap::SMFMap(std::string name,std::string texturepath)
 {
     m_tiles = new TileStorage();
@@ -45,11 +49,239 @@ SMFMap::SMFMap(std::string name,std::string texturepath)
     m_minh = 0.0;
     m_maxh = 1.0;
     m_name = name;
+    m_doclamp = true;
     m_th = 0;
     m_comptype = COMPRESS_REASONABLE;
     m_smooth = false;
     texpath = texturepath;
 }
+SMFMap::SMFMap(std::string smfname)
+{
+  std::vector<ILuint> tiles_images;
+  std::vector<std::string> tile_files;
+  metalmap = NULL;
+  heightmap = NULL;
+  typemap = NULL;
+  minimap = NULL;
+  vegetationmap = NULL;
+  FILE * smffile = fopen(smfname.c_str(),"rb");
+  if ( !smffile )
+  {
+    throw CannotLoadSmfFileException();
+    
+  }
+  SMFHeader hdr;
+  fread(&hdr,sizeof(hdr),1,smffile);
+  if ( strncmp(hdr.magic,"spring map file",15) > 0 )
+  {
+    
+    throw InvalidSmfFileException();
+  }
+  mapx = hdr.mapx;
+  mapy = hdr.mapy;
+  m_minh = hdr.minHeight;
+  m_maxh = hdr.maxHeight;
+  m_doclamp = true;
+  m_th = 0;
+  m_comptype = COMPRESS_REASONABLE;
+  m_smooth = false;
+  texture = new Image();
+  texture->AllocateRGBA((mapx/128)*1024,(mapy/128)*1024);
+  std::cout << "Loading metal map..." << std::endl;
+  metalmap = new Image();
+  metalmap->AllocateLUM(mapx/2,mapy/2);
+  fseek(smffile,hdr.metalmapPtr,SEEK_SET);
+  fread(metalmap->datapointer,mapx/2*mapy/2,1,smffile);
+  
+  
+  std::cout << "Loading heightmap..." << std::endl;
+  heightmap = new Image();
+  heightmap->AllocateLUM(mapx+1,mapy+1);
+  heightmap->ConvertToLUMHDR();//TODO: Allocate directly HDR
+  fseek(smffile,hdr.heightmapPtr,SEEK_SET);
+  fread(heightmap->datapointer,(mapx+1)*(mapy+1)*2,1,smffile);
+  heightmap->FlipVertical();
+  
+  std::cout << "Loading type map..." << std::endl;
+  typemap = new Image();
+  typemap->AllocateLUM(mapx/2,mapy/2);
+  fseek(smffile,hdr.typeMapPtr,SEEK_SET);
+  fread(typemap->datapointer,mapx/2*mapy/2,1,smffile);
+  typemap->FlipVertical();
+  
+  std::cout << "Loading minimap..." << std::endl;
+  minimap = new Image();
+  uint8_t * dxt1data = new uint8_t[699064];
+  fseek(smffile,hdr.minimapPtr,SEEK_SET);
+  fread(dxt1data,699064,1,smffile);
+  ilBindImage(minimap->image);
+  ilTexImageDxtc(1024,1024,1,IL_DXT1,dxt1data);
+  ilDxtcDataToImage();
+  std::cout << "Extracting main texture..." << std::endl;
+  int *tilematrix = new int[mapx/4 * mapy/4];
+  
+  fseek(smffile,hdr.tilesPtr,SEEK_SET);
+  MapTileHeader thdr;
+  fread(&thdr,sizeof(thdr),1,smffile);
+  while ( tile_files.size() < thdr.numTileFiles )
+  {
+    tile_files.push_back("");
+    char byte;
+    int numtiles;
+    fread(&numtiles,4,1,smffile);
+    fread(&byte,1,1,smffile);
+    while ( byte != 0 )
+    {
+      tile_files[tile_files.size()-1].append(1,byte);
+      fread(&byte,1,1,smffile);
+    }
+  }
+  for ( std::vector<std::string>::iterator it = tile_files.begin(); it != tile_files.end(); it++ )
+  {
+    std::cout << "Opening " << *it << std::endl;
+    FILE* smtfile = fopen((*it).c_str(),"rb");
+    if ( !smtfile )
+    {
+      throw CannotOpenSmtFileException();
+    }
+    TileFileHeader smthdr;
+    fread(&smthdr,sizeof(smthdr),1,smtfile);
+    if ( strncmp(smthdr.magic,"spring tilefile",14) )
+    {
+      throw InvalidSmtFileException();
+    }
+    for ( int i = 0; i < smthdr.numTiles; i++ )
+    {
+      ILuint tile = ilGenImage();
+      fread(dxt1data,680,1,smtfile);
+      ilBindImage(tile);
+      ilTexImageDxtc(32,32,1,IL_DXT1,dxt1data);
+      ilDxtcDataToImage();
+      tiles_images.push_back(tile);
+    }
+    fclose(smtfile);
+    
+    
+  }
+  std::cout << "Tiles @ " << ftell(smffile) << std::endl;
+  fread(tilematrix,mapx/4 * mapy/4 * 4,1,smffile);
+  ilBindImage(texture->image);
+  unsigned int * texdata = (unsigned int *)ilGetData();
+  std::cout << "Blitting tiles..." << std::endl;
+  for ( int y = 0; y < mapy/4; y++ )
+  {
+    std::cout << "Row " << y << " of " << mapy/4 << std::endl;
+    for ( int x = 0; x < mapx/4; x++ )
+    {
+      if ( tilematrix[y*(mapx/4)+x] >= tiles_images.size() )
+      {
+	std::cerr << "Warning: tile " << tilematrix[y*(mapx/4)+x] << " out of range" << std::endl;
+	continue;
+      }
+      //ilBlit(tiles_images[tilematrix[y*(mapx/4)+x]],x*32,y*32,0,0,0,0,32,32,1);
+      ilBindImage(tiles_images[tilematrix[y*(mapx/4)+x]]);
+      unsigned int * data = (unsigned int *)ilGetData();
+      int r2 = 0;
+      for ( int y2 = y*32; y2 < y*32+32; y2++ )//FAST blitting
+      {
+	/*for ( int x2 = y*32; x2 < y*32+32; x2++ )
+	{
+	  
+	  
+	}*/
+	memcpy(&texdata[y2*texture->w+x*32],&data[r2*32],32*4);
+	r2++;
+      }
+    }
+    
+  }
+  texture->FlipVertical();
+  
+  
+  std::cout << "Loading features..." << std::endl;
+  
+  fseek(smffile,hdr.featurePtr,SEEK_SET);
+  MapFeatureHeader mfhdr;
+  fread(&mfhdr,sizeof(mfhdr),1,smffile);
+  //-32767.0f+f->rotation/65535.0f*360
+  
+  std::vector<std::string> feature_types;
+  while ( feature_types.size() < mfhdr.numFeatureType )
+  {
+    feature_types.push_back("");
+    char byte;
+    fread(&byte,1,1,smffile);
+    while ( byte != 0 )
+    {
+      feature_types[feature_types.size()-1].append(1,byte);
+      fread(&byte,1,1,smffile);
+    }
+  }
+  for ( int i = 0; i < mfhdr.numFeatures; i++ )
+  {
+    MapFeatureStruct f;
+    fread(&f,sizeof(f),1,smffile);
+    if ( f.featureType >= feature_types.size() )
+    {
+      std::cerr << "Warning: invalid feature type " << f.featureType << std::endl;
+      continue;
+    }
+    AddFeature(feature_types[f.featureType],f.xpos,f.ypos,f.zpos,-32767.0f+f.rotation/65535.0f*360);
+    
+  }
+  fclose(smffile);
+  delete dxt1data;
+  
+  
+}
+
+void SMFMap::SetClamping(bool b)
+{
+  m_doclamp = b;
+}
+void SMFMap::SaveSourceFiles()
+{
+  if ( metalmap )
+  {
+    metalmap->Save("metalmap.png");
+  }
+  if ( typemap )
+  {
+    typemap->Save("typemap.png");
+  }
+  if ( heightmap )
+  {
+    heightmap->Save("heightmap.png");
+    heightmap->Save("heightmap.hdr");
+    
+  }
+  if ( texture )
+  {
+    texture->Save("texture.png");
+  }
+  if ( minimap )
+  {
+    minimap->Save("minimap.png");
+  }
+  FILE * featurefile = fopen("features.txt","w");
+  for ( std::map<std::string,std::list<MapFeatureStruct*> * >::iterator it = features.begin(); it != features.end(); it++ )
+  {
+    for ( std::list<MapFeatureStruct*>::iterator it2 = (*it).second->begin(); it2 != (*it).second->end(); it2++ )
+    {
+      MapFeatureStruct* f = (*it2);
+      float degrot = -32767.0f+f->rotation/65535.0f*360; // 32767.0f-((orientation/360.0)*65535.0f);
+      
+      fprintf(featurefile,"%s %f %f %f %f\n",(*it).first.c_str(),f->xpos,f->ypos,f->zpos,degrot);
+      
+      
+    }
+    
+    
+  }
+  fclose(featurefile);
+  
+}
+
 void SMFMap::SetVegetationMap(std::string path)
 {
     Image * img = new Image(path.c_str());
@@ -162,29 +394,32 @@ void SMFMap::SetHeightMap(std::string path)
 
         }
         //Clamp heightmap before blurring
-        float _min = 65535.0f;
-	float _max = -65335.0f;
-	short * pixels = (short*)heightmap->datapointer;
-	for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
+        if ( m_doclamp )
 	{
-	  if ( _min > pixels[i] )
-	    _min = pixels[i];
-	  if ( _max < pixels[i] )
-	    _max = pixels[i];
-	  
-	}
-	std::cout << "Range : " << _min << " -> " << _max << std::endl;
-	float range = _max-_min;
-	for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
-	{
-	  pixels[i] = short(((pixels[i]-_min)/range)*32767.0f);
-	  
+	  float _min = 65535.0f;
+	  float _max = -65335.0f;
+	  short * pixels = (short*)heightmap->datapointer;
+	  for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
+	  {
+	    if ( _min > pixels[i] )
+	      _min = pixels[i];
+	    if ( _max < pixels[i] )
+	      _max = pixels[i];
+	    
+	  }
+	  std::cout << "Range : " << _min << " -> " << _max << std::endl;
+	  float range = _max-_min;
+	  for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
+	  {
+	    pixels[i] = short((((pixels[i]-_min)/range)*65535.0f)-32768.0f);
+	    
+	  }
 	}
         if ( m_smooth )
 	{
 	  std::cout << "Blurring heightmap..." << std::endl;
 	  ilBindImage(heightmap->image);
-	  iluBlurGaussian(30);
+	  iluBlurAvg(100);
 	  
 	}
     }
