@@ -29,6 +29,7 @@
 #endif
 SMFMap::SMFMap(std::string name,std::string texturepath)
 {
+  
     m_tiles = new TileStorage();
     metalmap = NULL;
     heightmap = NULL;
@@ -45,7 +46,7 @@ SMFMap::SMFMap(std::string name,std::string texturepath)
 
     }
     mapx = ( texture->w / 1024 ) * 128;
-    mapy = ( texture->w / 1024 ) * 128;
+    mapy = ( texture->h / 1024 ) * 128;
     m_minh = 0.0;
     m_maxh = 1.0;
     m_name = name;
@@ -81,6 +82,7 @@ SMFMap::SMFMap(std::string smfname)
   mapy = hdr.mapy;
   m_minh = hdr.minHeight;
   m_maxh = hdr.maxHeight;
+  m_smfname = smfname;
   m_doclamp = true;
   m_th = 0;
   m_comptype = COMPRESS_REASONABLE;
@@ -279,7 +281,11 @@ void SMFMap::SaveSourceFiles()
     
   }
   fclose(featurefile);
-  
+  FILE * makefile = fopen("Makefile","w");
+  fprintf(makefile,"%s:\n",m_smfname.c_str());
+  std::string smfbasename = m_smfname.substr(0,m_smfname.find("."));
+  fprintf(makefile,"\tSpringMapConvNG -t texture.png -h heightmap.hdr -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o %s \n",m_maxh,m_minh,smfbasename.c_str());
+  fclose(makefile);
 }
 
 void SMFMap::SetVegetationMap(std::string path)
@@ -389,7 +395,7 @@ void SMFMap::SetHeightMap(std::string path)
         heightmap->ConvertToLUMHDR();
         if ( img->w != mapx+1 || img->h != mapy+1 )
         {
-            std::cerr << "Warning: Height map has wrong size , rescaling!" << std::endl;
+            std::cerr << "Warning: Height map has wrong size , rescaling! (" << img->w << "," << img->h << ") instead of (" << mapx+1 << "," << mapy+1 << ")" << std::endl;
             heightmap->Rescale(mapx+1,mapy+1);
 
         }
@@ -446,7 +452,7 @@ void SMFMap::SetMetalMap(std::string path)
 	
         if ( img->w != mapx/2 || img->h != mapy/2 )
         {
-            std::cerr << "Warning: Metal map has wrong size , rescaling!" << std::endl;
+            std::cerr << "Warning: Metal map has wrong size , rescaling! (" << img->w << "," << img->h << ") instead of (" << mapx/2 << "," << mapy/2 << ")" << std::endl;
             metalmap->Rescale( mapx/2,mapy/2);
 
         }
@@ -463,7 +469,7 @@ void SMFMap::SetTypeMap(std::string path)
         typemap->ConvertToLUM();
         if ( img->w != mapx/2 || img->h != mapy/2 )
         {
-            std::cerr << "Warning: Type map has wrong size , rescaling!" << std::endl;
+            std::cerr << "Warning: Type map has wrong size , rescaling! (" << img->w << "," << img->h << ") instead of (" << mapx/2 << "," << mapy/2 << ")"  << std::endl;
             typemap->Rescale(mapx/2,mapy/2);
 
         }

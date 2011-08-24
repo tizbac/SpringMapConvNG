@@ -145,6 +145,7 @@ private:
     bool m_smooth;
     int m_comptype;
     std::string texpath;
+    std::string m_smfname;
     std::map<std::string,std::list<MapFeatureStruct*> * > features;
 };
 

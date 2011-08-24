@@ -18,6 +18,12 @@
 
 
 #include "Image.h"
+
+CannotLoadImageException::CannotLoadImageException(std::string path) : runtime_error(path) 
+{
+
+}
+
 Image::Image()
 {
     ilGenImages(1,&image);
@@ -46,7 +52,11 @@ Image::Image(const char* filename, bool hdrlum )
 
     ilGenImages(1,&image);
     ilBindImage(image);
-    ilLoadImage(filename);
+    if ( ! ilLoadImage(filename) )
+    {
+      throw CannotLoadImageException(std::string(filename));
+      
+    }
     if (!hdrlum)
     {
       ConvertToRGBA();

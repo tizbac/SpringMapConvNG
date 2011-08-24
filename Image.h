@@ -21,6 +21,13 @@
 #define IMAGE_H
 #include <IL/il.h>
 #include <IL/ilu.h>
+#include <string>
+#include <stdexcept>
+class CannotLoadImageException : public std::runtime_error
+{
+public:
+  CannotLoadImageException(std::string path);
+};
 class Image{
   public:
     ILuint image;
