@@ -60,7 +60,7 @@ Image::Image(const char* filename, bool hdrlum )
     if (!hdrlum)
     {
       ConvertToRGBA();
-    }else{
+    }else if ( ilGetInteger( IL_IMAGE_BYTES_PER_PIXEL ) != 2 ||  ilGetInteger(IL_IMAGE_FORMAT) != IL_LUMINANCE ) {
       ConvertToLUMHDR();
     }
     w = ilGetInteger(IL_IMAGE_WIDTH);
@@ -160,7 +160,7 @@ void Image::ConvertToLUM()
 void Image::ConvertToLUMHDR()
 {
     ilBindImage(image);
-    ilConvertImage(IL_LUMINANCE,IL_SHORT);
+    ilConvertImage(IL_LUMINANCE,IL_UNSIGNED_SHORT);
     datapointer = ilGetData();
 }
 

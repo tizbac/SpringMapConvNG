@@ -254,7 +254,7 @@ void SMFMap::SaveSourceFiles()
   if ( heightmap )
   {
     heightmap->Save("heightmap.png");
-    heightmap->Save("heightmap.hdr");
+    //heightmap->Save("heightmap.exr"); Not needed , png already supports 16 bit and DevIL too
     
   }
   if ( texture )
@@ -284,7 +284,7 @@ void SMFMap::SaveSourceFiles()
   FILE * makefile = fopen("Makefile","w");
   fprintf(makefile,"%s:\n",m_smfname.c_str());
   std::string smfbasename = m_smfname.substr(0,m_smfname.find("."));
-  fprintf(makefile,"\tSpringMapConvNG -t texture.png -h heightmap.hdr -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o %s \n",m_maxh,m_minh,smfbasename.c_str());
+  fprintf(makefile,"\tSpringMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o %s \n",m_maxh,m_minh,smfbasename.c_str());
   fclose(makefile);
 }
 
@@ -392,7 +392,7 @@ void SMFMap::SetHeightMap(std::string path)
         if ( heightmap )
             delete heightmap;
         heightmap = img;
-        heightmap->ConvertToLUMHDR();
+       // heightmap->ConvertToLUMHDR();
         if ( img->w != mapx+1 || img->h != mapy+1 )
         {
             std::cerr << "Warning: Height map has wrong size , rescaling! (" << img->w << "," << img->h << ") instead of (" << mapx+1 << "," << mapy+1 << ")" << std::endl;
@@ -402,9 +402,9 @@ void SMFMap::SetHeightMap(std::string path)
         //Clamp heightmap before blurring
         if ( m_doclamp )
 	{
-	  float _min = 65535.0f;
-	  float _max = -65335.0f;
-	  short * pixels = (short*)heightmap->datapointer;
+	  float _min = 65537.0f;
+	  float _max = -65337.0f;
+	  unsigned short * pixels = (unsigned short*)heightmap->datapointer;
 	  for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
 	  {
 	    if ( _min > pixels[i] )
@@ -417,16 +417,43 @@ void SMFMap::SetHeightMap(std::string path)
 	  float range = _max-_min;
 	  for ( int i = 0; i < heightmap->w*heightmap->h; i++ )
 	  {
-	    pixels[i] = short((((pixels[i]-_min)/range)*65535.0f)-32768.0f);
+	    pixels[i] = (unsigned short)((((pixels[i]-_min)/range)*65535.0f));
 	    
 	  }
 	}
         if ( m_smooth )
 	{
 	  std::cout << "Blurring heightmap..." << std::endl;
-	  ilBindImage(heightmap->image);
-	  iluBlurAvg(100);
-	  
+	  /*ilBindImage(heightmap->image); // Seems broken with 16 bit image
+	  iluBlurAvg(5);
+	  heightmap->datapointer = ilGetData();*/
+	  unsigned short * tempdata = new unsigned short[img->h*img->w];
+	  for ( int pass = 0; pass < 3; pass++ )
+	  {
+	    std::cout << "Blurring heightmap pass " << pass+1 << "..." << std::endl;
+	    memcpy(tempdata,img->datapointer,img->h*img->w*2);
+	    for ( int y = 1; y < img->h-1; y++ )
+	    {
+	      for ( int x = 1; x < img->w-1; x++ )
+	      {
+		float sum = 0.0f;
+		sum += ((unsigned short*)img->datapointer)[y*img->w+x];
+		sum += ((unsigned short*)img->datapointer)[(y-1)*img->w+(x-1)];
+		sum += ((unsigned short*)img->datapointer)[(y-1)*img->w+(x-0)];
+		sum += ((unsigned short*)img->datapointer)[(y-1)*img->w+(x+1)];
+		sum += ((unsigned short*)img->datapointer)[(y-0)*img->w+(x-1)];
+		sum += ((unsigned short*)img->datapointer)[(y-0)*img->w+(x+1)];
+		sum += ((unsigned short*)img->datapointer)[(y+1)*img->w+(x-1)];
+		sum += ((unsigned short*)img->datapointer)[(y+1)*img->w+(x-0)];
+		sum += ((unsigned short*)img->datapointer)[(y+1)*img->w+(x+1)];
+		sum /= 9.0f;
+		tempdata[y*img->w+x] = (unsigned short)(sum);
+	      }
+	      
+	    }
+	    memcpy(img->datapointer,tempdata,img->h*img->w*2);
+	  }
+	  delete tempdata;
 	}
     }
 
@@ -496,7 +523,14 @@ void SMFMap::Compile()
     short int * hmap = new short int[(mapy+1)*(mapx+1)];bzero(hmap,((mapy+1)*(mapx+1))*2);
     if ( heightmap )
     {
-        heightmap->GetRect(0,0,heightmap->w,heightmap->h,IL_LUMINANCE,IL_SHORT,hmap);
+        //heightmap->GetRect(0,0,heightmap->w,heightmap->h,IL_LUMINANCE,IL_SHORT,hmap); : IL seems to fail to convert from unsigned short to signed
+        /*for ( int k = 0; k < (mapy+1)*(mapx+1); k++ )
+	{
+	  int pix = ((unsigned short*)heightmap->datapointer)[k];
+	  hmap[k] = short(int(pix)-int(32767));
+	  
+	  */
+	memcpy(hmap,heightmap->datapointer,((mapy+1)*(mapx+1))*2);
     }
     unsigned char * typedata = new unsigned char[mapy/2 * mapx/2];bzero(typedata,(mapy/2 * mapx/2));
     if ( typemap )
