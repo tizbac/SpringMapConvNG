@@ -286,6 +286,10 @@ void SMFMap::SaveSourceFiles()
   std::string smfbasename = m_smfname.substr(0,m_smfname.find("."));
   fprintf(makefile,"\tSpringMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o %s \n",m_maxh,m_minh,smfbasename.c_str());
   fclose(makefile);
+  FILE * batchfile = fopen("make.bat","w");
+  fprintf(batchfile,"SpringMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o \"%s\"\r\n",m_maxh,m_minh,smfbasename.c_str());
+  fprintf(batchfile,"pause\r\n");
+  fclose(batchfile);
 }
 
 void SMFMap::SetVegetationMap(std::string path)

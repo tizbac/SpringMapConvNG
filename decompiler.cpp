@@ -4,6 +4,9 @@
 #include "SMFMap.h"
 
 #include <stdlib.h>
+#ifdef WIN32
+#include <windows.h>
+#endif
 void help(char ** argv)
 {
   std::cout << "Usage: " << argv[0] << " -directory [directory where .smt files are] -mapfile [name of the smf file , NOT path ]" << std::endl;
