@@ -11,6 +11,8 @@ endif ( NOT MINGW )
 
 #qt4_automoc(${SpringMapConvNG_SRCS})
 
+find_package(DevIL REQUIRED)
+
 add_library(mapconv SHARED CRC.cpp Image.cpp SMFMap.cpp TileStorage.cpp )
 add_library(mapconv_static STATIC CRC.cpp Image.cpp SMFMap.cpp TileStorage.cpp )
 add_executable(SpringMapConvNG main.cpp)
@@ -25,4 +27,6 @@ target_link_libraries(mapconv DevIL ILU )
 target_link_libraries(decompiler DevIL ILU mapconv )
 endif ( NOT MINGW )
 
-
+install(TARGETS SpringMapConvNG decompiler RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
+install(TARGETS mapconv_static ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
+install(TARGETS mapconv LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
