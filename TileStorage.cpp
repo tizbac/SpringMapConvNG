@@ -114,6 +114,7 @@ void TileStorage::CompressTile(uint64_t uid)
   uint8_t * compressedmipmaps = new uint8_t[680];
   if ( !dataptr )
   {
+    delete [] compressedmipmaps;
     throw InvalidTileDataPointerException();
     
   }
