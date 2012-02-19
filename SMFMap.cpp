@@ -292,7 +292,7 @@ void SMFMap::SaveSourceFiles()
   fprintf(makefile,"\tspringMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o %s \n",m_maxh,m_minh,smfbasename.c_str());
   fclose(makefile);
   FILE * batchfile = fopen("make.bat","w");
-  fprintf(batchfile,"springMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o \"%s\"\r\n",m_maxh,m_minh,smfbasename.c_str());
+  fprintf(batchfile,"springMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -minimap minimap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o \"%s\"\r\n",m_maxh,m_minh,smfbasename.c_str());
   fprintf(batchfile,"pause\r\n");
   fclose(batchfile);
 }
