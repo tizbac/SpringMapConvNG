@@ -286,14 +286,19 @@ void SMFMap::SaveSourceFiles()
     
   }
   fclose(featurefile);
+
+  const char* compileCmd =  "springMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -minimap minimap.png -o \"%s\"";
   FILE * makefile = fopen("Makefile","w");
-  fprintf(makefile,"%s:\n",m_smfname.c_str());
+  fprintf(makefile,"%s: texture.png heightmap.png typemap.png metalmap.png minimap.png features.txt\n",m_smfname.c_str());
   std::string smfbasename = m_smfname.substr(0,m_smfname.find("."));
-  fprintf(makefile,"\tspringMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o %s \n",m_maxh,m_minh,smfbasename.c_str());
+  fprintf(makefile, "\t");
+  fprintf(makefile, compileCmd, m_maxh, m_minh, smfbasename.c_str());
+  fprintf(makefile, "\n");
   fclose(makefile);
+
   FILE * batchfile = fopen("make.bat","w");
-  fprintf(batchfile,"springMapConvNG -t texture.png -h heightmap.png -z typemap.png -m metalmap.png -maxh %f -minh %f -th 0.8 -ct 4 -features features.txt -o \"%s\"\r\n",m_maxh,m_minh,smfbasename.c_str());
-  fprintf(batchfile,"pause\r\n");
+  fprintf(batchfile, compileCmd, m_maxh, m_minh, smfbasename.c_str());
+  fprintf(batchfile,"\r\npause\r\n");
   fclose(batchfile);
 }
 
@@ -493,7 +498,6 @@ void SMFMap::SetMetalMap(std::string path)
 
         }
     }
-    delete img;
 }
 void SMFMap::SetTypeMap(std::string path)
 {
