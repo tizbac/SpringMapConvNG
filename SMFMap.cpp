@@ -75,7 +75,7 @@ SMFMap::SMFMap(std::string smfname)
   fread(&hdr,sizeof(hdr),1,smffile);
   if ( strncmp(hdr.magic,"spring map file",15) > 0 )
   {
-    
+    fclose(smffile);
     throw InvalidSmfFileException();
   }
   mapx = hdr.mapx;
@@ -144,12 +144,17 @@ SMFMap::SMFMap(std::string smfname)
     FILE* smtfile = fopen((*it).c_str(),"rb");
     if ( !smtfile )
     {
+      fclose(smffile);
+      delete [] tilematrix;
       throw CannotOpenSmtFileException();
     }
     TileFileHeader smthdr;
     fread(&smthdr,sizeof(smthdr),1,smtfile);
     if ( strncmp(smthdr.magic,"spring tilefile",14) )
     {
+      fclose(smffile);
+      fclose(smtfile);
+      delete [] tilematrix;
       throw InvalidSmtFileException();
     }
     for ( int i = 0; i < smthdr.numTiles; i++ )
@@ -232,7 +237,7 @@ SMFMap::SMFMap(std::string smfname)
     
   }
   fclose(smffile);
-  delete dxt1data;
+  delete [] dxt1data;
   
   
 }
@@ -457,7 +462,7 @@ void SMFMap::SetHeightMap(std::string path)
 	    }
 	    memcpy(img->datapointer,tempdata,img->h*img->w*2);
 	  }
-	  delete tempdata;
+	  delete [] tempdata;
 	}
     }
 
@@ -488,6 +493,7 @@ void SMFMap::SetMetalMap(std::string path)
 
         }
     }
+    delete img;
 }
 void SMFMap::SetTypeMap(std::string path)
 {
@@ -677,12 +683,12 @@ void SMFMap::Compile()
     fseek(smffile,0,SEEK_SET);
     fwrite(&hdr,sizeof(hdr),1,smffile);
     fclose(smffile);
-    delete metalmap_data;
-    delete hmap;
-    delete typedata;
-    delete tiles;
-    delete minimap_data;
-    delete grass_data;
+    delete [] metalmap_data;
+    delete [] hmap;
+    delete [] typedata;
+    delete [] tiles;
+    delete [] minimap_data;
+    delete [] grass_data;
 }
 
 void SMFMap::DoCompress(int* indices, std::vector< uint64_t >& order)
@@ -691,7 +697,7 @@ void SMFMap::DoCompress(int* indices, std::vector< uint64_t >& order)
   
   uint8_t tiledata[32*32*4];
   std::map<uint64_t,uint32_t> existingtiles;
-  int c;
+  int c = 0;
   for ( int y = 0; y < mapy/4; y++ )
   {
     for ( int x = 0; x < mapx/4; x++ )
