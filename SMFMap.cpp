@@ -498,7 +498,6 @@ void SMFMap::SetMetalMap(std::string path)
 
         }
     }
-    delete img;
 }
 void SMFMap::SetTypeMap(std::string path)
 {
