@@ -58,10 +58,10 @@ void TileStorage::Reset()
   {
     if ( m_tiles_compressed.find((*it).first) != m_tiles_compressed.end() )
     {
-      delete m_tiles_compressed[(*it).first];
+      delete [] m_tiles_compressed[(*it).first];
       
     }
-    delete (*it).second;
+    delete [] (*it).second;
   }
   m_tiles.clear();
   m_lasttiles.clear();
