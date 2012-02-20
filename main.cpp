@@ -16,7 +16,7 @@ void help(char ** argv)
   std::cout << "If you specify less than -490000 as ypos , it will calculate ypos depending on terrain height" << std::endl;
   
 }
-#ifdef WIN32
+
 static void* ILAPIENTRY AllocFunc(const ILsizei Size)
 {
     return malloc(Size);
@@ -25,13 +25,10 @@ static void ILAPIENTRY FreeFunc(const void * CONST_RESTRICT ptr)
 {
     free((void*)ptr);
 }
-#endif
 
 int main(int argc, char** argv)
 {
-#ifdef WIN32 //FIXME: workaround weird win32 crash
-    ilSetMemory(AllocFunc, FreeFunc);
-#endif
+    ilSetMemory(AllocFunc, FreeFunc); //FIXME: remove this, workaround weird win32 crash
     ilInit();
     if ( argc == 1 )
     {
