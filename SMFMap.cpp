@@ -65,6 +65,7 @@ SMFMap::SMFMap(std::string smfname)
   typemap = NULL;
   minimap = NULL;
   vegetationmap = NULL;
+  m_tiles = NULL;
   FILE * smffile = fopen(smfname.c_str(),"rb");
   if ( !smffile )
   {
@@ -238,8 +239,7 @@ SMFMap::SMFMap(std::string smfname)
   }
   fclose(smffile);
   delete [] dxt1data;
-  
-  
+  delete [] tilematrix;
 }
 
 void SMFMap::SetClamping(bool b)

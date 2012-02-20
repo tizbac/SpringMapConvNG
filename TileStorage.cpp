@@ -230,7 +230,7 @@ uint64_t TileStorage::AddTileOrGetSimiliar(uint8_t* data, float th, int compress
   }else if ( compresslevel == COMPRESS_REASONABLE_BESTQUALITY )
   {
     float mindiff = 9999999.0f;
-    uint64_t besttile;
+    uint64_t besttile = 0;
     for ( std::list<uint64_t>::iterator it = m_lasttiles.begin(); it != m_lasttiles.end(); it++ )
     {
       float diff = tilediff(data,m_tiles[(*it)]);

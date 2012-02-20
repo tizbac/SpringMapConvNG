@@ -27,8 +27,9 @@ CannotLoadImageException::CannotLoadImageException(std::string path) : runtime_e
 Image::Image()
 {
     ilGenImages(1,&image);
-
-
+    w = 0;
+    h = 0;
+    d = 0;
 
 }
 void Image::GetRect(int x, int y, int w, int h,ILenum format, void * dest)

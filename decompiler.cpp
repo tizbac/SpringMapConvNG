@@ -85,6 +85,7 @@ int main(int argc, char** argv)
 	}
 	SMFMap * m = new SMFMap(mapfile);
 	m->SaveSourceFiles();
+	delete m;
     }
 }
 
