@@ -1,4 +1,4 @@
-#include <IL/il.h>
+#include <Magick++.h>
 #include <iostream>
 #include <string.h>
 #include "SMFMap.h"
@@ -8,6 +8,8 @@
 #include <windows.h>
 #include <direct.h>
 #include <io.h>
+#else
+#include <unistd.h>
 #endif
 void help(char ** argv)
 {
@@ -16,7 +18,7 @@ void help(char ** argv)
 }
 int main(int argc, char** argv)
 {
-    ilInit();
+    Magick::InitializeMagick(*argv);
     if ( argc == 1 )
     {
       
@@ -85,6 +87,7 @@ int main(int argc, char** argv)
 	}
 	SMFMap * m = new SMFMap(mapfile);
 	m->SaveSourceFiles();
+	delete m;
     }
 }
 

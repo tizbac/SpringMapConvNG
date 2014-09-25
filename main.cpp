@@ -1,6 +1,7 @@
 
 
 #include <IL/il.h>
+#include <Magick++.h>
 #include <iostream>
 #include <string.h>
 #include "SMFMap.h"
@@ -16,9 +17,22 @@ void help(char ** argv)
   std::cout << "If you specify less than -490000 as ypos , it will calculate ypos depending on terrain height" << std::endl;
   
 }
+/*
+static void* ILAPIENTRY AllocFunc(const ILsizei Size)
+{
+    return malloc(Size);
+}
+static void ILAPIENTRY FreeFunc(const void * CONST_RESTRICT ptr)
+{
+    free((void*)ptr);
+}
+
+*/
 int main(int argc, char** argv)
 {
+//    ilSetMemory(AllocFunc, FreeFunc); //FIXME: remove this, workaround weird win32 crash
     ilInit();
+    Magick::InitializeMagick(*argv);
     if ( argc == 1 )
     {
       
@@ -239,6 +253,7 @@ int main(int argc, char** argv)
 	  
 	}
 	m->Compile();
+	delete m;
     }
 }
 

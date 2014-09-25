@@ -1,0 +1,10 @@
+language: cpp
+compiler:
+  - gcc
+  - clang
+before_script:
+  - sudo apt-get install libdevil-dev libmagick++-dev
+  - cmake .
+script:
+  - make
+

@@ -23,6 +23,11 @@
 #include <IL/ilu.h>
 #include <string>
 #include <stdexcept>
+
+#ifdef SetPixelRGBA
+#undef SetPixelRGBA
+#endif
+
 class CannotLoadImageException : public std::runtime_error
 {
 public:
